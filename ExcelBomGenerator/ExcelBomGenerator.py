@@ -97,6 +97,16 @@ def applyStyleToTableRow(rowNumber, tableWidth):
     for c in char_range('B',  chr(ord('B') + tableWidth - 1) ):
         ws1[c+str(rowNumber)]._style = copy(componentStyle)
 
+# Returns true if the file with name passed as string exists, or false otherwise
+def fileExists(filename):
+    try:
+        f = open(KibomConfig)
+        f.close()
+        return true
+    except IOError:
+        print('Config File is not accessible')
+        return false
+
 ################################################################################
 ### Script Starts
 ################################################################################
@@ -121,8 +131,21 @@ args = parser.parse_args()
 ### Run KiBoM to generate an CSV with the BoM ##################################
 KibomConfig = "KiBom_config.ini"
 if args.config != None:
+    # Config file was provided as argument, replace default
     KibomConfig = args.config
-command = ["/KiBoM/KiBOM_CLI.py", str(args.netlist), "out", "--cfg", str(args.config), "-s", ";"]
+
+# Check the provided files exist
+if not fileExists(args.netlist):
+    print("Netlist file " + args.netlist + " couldn't be found")
+    exit(1)
+if not fileExists(KibomConfig):
+    print("Config file " + KibomConfig + " couldn't be found")
+    exit(1)
+if not fileExists(args.template):
+    print("Template file " + args.template + " couldn't be found")
+    exit(1)
+
+command = ["/KiBoM/KiBOM_CLI.py", str(args.netlist), "out", "--cfg", str(KibomConfig), "-s", ";"]
 if args.variant:
     command = command[:3] + ["--variant", args.variant] + command[3:]
 KiBoMOutput = str(subprocess.check_output(command, shell=False))
