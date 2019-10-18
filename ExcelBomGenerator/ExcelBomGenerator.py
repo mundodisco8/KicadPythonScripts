@@ -2,33 +2,34 @@
 ################################################################################
 ### Excel BoM file generator
 ###
-### This script gets the output of KiBom and applies the generated BoM to the
-### Felcana template
+### This Scripts generates a BoM with KiBom, and then gets the output from that
+### process and generates an Excel File with the contents
 ###
 ### Usage:
-### 1) Run KiBom to generate
-### 2) Call this script using the generated file as one of the parameters and
-###    the project name as the other
+###     netlist: specifies the xml netlist to use to build the BoM
+###     template: specifies the excel Template to use
+###     --config: optional config file for KiBom, or KiBom_Config.ini in current dir by default
+###     --variant: optional variant to use.
 ###
-### python3 ExcelBomGenerator.py kibomCSVoutput.csv "Helix go"
+### Example:
+### ExcelBomGenerator.py project.xml ExcelTemplate.xlsx
 ###
 ################################################################################
-
-
-from openpyxl import Workbook
-from openpyxl.utils import get_column_letter
-from openpyxl import load_workbook
-from openpyxl.worksheet.table import Table, TableStyleInfo
-from openpyxl.drawing.image import Image
-
-from copy import copy, deepcopy
 
 import argparse
 import csv
 import operator
 import os
 import re
+import subprocess
 import sys
+from copy import copy, deepcopy
+
+from openpyxl import Workbook
+from openpyxl.utils import get_column_letter
+from openpyxl import load_workbook
+from openpyxl.worksheet.table import Table, TableStyleInfo
+from openpyxl.drawing.image import Image
 
 ### Helper functions to sort columns "Naturally": C1, C2, C10,... and not C1, C10, C2,...
 # returns a number as a int type if the text was a number, or the original value if it wasn't
@@ -100,25 +101,57 @@ def applyStyleToTableRow(rowNumber, tableWidth):
 ### Script Starts
 ################################################################################
 
+### Parse Arguments ############################################################
+parser = argparse.ArgumentParser()
+
+# add a usage description
+parser.usage = "Generates an Excel file with the Bill of Materials for the current project. The script needs an xml netlist from KiCad and an Excel File as template"
+# add a positional arguments, they are mandatory and they are processed in order
+# without any flags indicating what they are.
+# The file to be processed
+parser.add_argument("netlist", help="xml netlist file to process", type=str)
+# Template to build the XLSX from
+parser.add_argument("template", help="excel template to use as a base", type=str)
+# Optional Config file
+parser.add_argument("--config", help="Specifies a KiBom config file, or use 'KiBom_Config.ini' in the current folder as default", type=str)
+# Variant specifier
+parser.add_argument("--variant", help="variant of the board", type=str)
+args = parser.parse_args()
+
+### Run KiBoM to generate an CSV with the BoM ##################################
+KibomConfig = "KiBom_config.ini"
+if args.config != None:
+    KibomConfig = args.config
+command = ["/KiBoM/KiBOM_CLI.py", str(args.netlist), "out", "--cfg", str(args.config), "-s", ";"]
+if args.variant:
+    command = command[:3] + ["--variant", args.variant] + command[3:]
+KiBoMOutput = str(subprocess.check_output(command, shell=False))
+# This generates "out_bom_.csv" if no variant is specified, or "out_bomm__(nameOfTheVariant).csv" if it is
+
 ### Open the output from KiBoM and rearrange the table #########################
+projectName = os.path.splitext(args.netlist)[0]
 
-if len(sys.argv) != 3:
-    print("\n\nScript usage:\npython ExcelBoM.py KiBom_csv_file projectName\n\n")
-    exit()
-
-projectName = sys.argv[2]
-print(os.path.realpath(__file__))
+# KiBoMOutput = "jasjajdj CSV Output -> test\n"
 
 # Filenames
-csv_in = sys.argv[1]
+# match the output filename from KiBom with a regex
+csv_in = ""
+match = re.search(r'(.*)CSV Output -> (.*)\\n', KiBoMOutput)
+if match:
+    csv_in = match.group(2)
+    print(csv_in)
+else:
+    print("No Matches! This is KiBom's output\n" + KiBoMOutput)
+    sys.exit(1)
+
 csv_out = "out_bom_v1.3_out.csv"
 sortedCSV = csv_out
-# Template to add the BoM to
-BoMTemplate = 'BoM Template.xlsx'
 
+# Template to add the BoM to
+BoMTemplate = args.template
 
 print ("File name: "+ csv_in)
-print ("Project name: "+ sys.argv[2])
+print ("Project name: "+ projectName)
 try:
     with open(csv_in, newline='') as csvfile_in, open(csv_out, 'w+', newline='') as csvfile_out:
         reader = csv.reader(csvfile_in, delimiter=';', quotechar='|')
@@ -222,7 +255,6 @@ for colIndex, cellValue in enumerate(partList[0], start=tableStartingColumn):
 # Now store the parts
 for rowIndex, row in enumerate(partList[1:], start=tableStartingRow+1):
     for colIndex, cellValue in enumerate(row, start=tableStartingColumn):
-        # print("row " + str(rowIndex) + " Col " + str(colIndex))
         # We know that all colums are text, except Qty, which is the second
         # column (Column C, index 3), and Order2, which is the last one
         if (colIndex != tableStartingColumn + 1) and (colIndex != tableWidth+tableStartingColumn):
@@ -272,7 +304,10 @@ for row in range (tableStartingRow + 1, tableStartingRow + 1 + noItemsInBOM):
 
 ### And done! ##################################################################
 # Output filename
-# File name is "Project_Name_(_Variant))_vX.Y_BoM.xlsx"
-dest_filename = ws1["E9"].value.replace(" ", "_") + "_" + ws1["E10"].value + '_BoM.xlsx'
+# File name is "Project_Name(_Variant)_vX.Y_BoM.xlsx"
+dest_filename = ws1["E9"].value.replace(" ", "_")
+if args.variant != None:
+    dest_filename += "_" + ws1["E10"].value
+dest_filename += '_BoM.xlsx'
 print("File saved as " + dest_filename)
 wb.save(filename = dest_filename)
