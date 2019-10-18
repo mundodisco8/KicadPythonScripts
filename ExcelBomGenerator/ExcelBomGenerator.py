@@ -102,10 +102,10 @@ def fileExists(filename):
     try:
         f = open(KibomConfig)
         f.close()
-        return true
+        return True
     except IOError:
         print('Config File is not accessible')
-        return false
+        return False
 
 ################################################################################
 ### Script Starts
