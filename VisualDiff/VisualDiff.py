@@ -1,3 +1,24 @@
+################################################################################
+# First stab at trying to get a visual diff for the gerbers
+#
+# This script gets the gerbers in two subfolders, "After" and "Before", and
+# creates a GerbV project that displays them in a way that is easy to see the
+# changes between versions.
+#
+# Caveats: many!
+# - You need to have GerbV installed, and indicate the path manually.
+# - Both Before and After gerber sets need a kicad gerber project file (for now,
+#   at least).
+# - If Before and After have different number of gerbers, the thing just doesn't
+#   know what to do.
+#
+# TODO:
+# - Remove the dependency on the gerber project file, and search for gerbers in
+#   the directories.
+# - If a gerber is only present in one of the sets, consider it a new gerber or
+#   a deleted gerber, and show it with a different colour.
+################################################################################
+
 import os
 from os import path
 import json
@@ -6,12 +27,9 @@ from GerberLayerColours import A_layerPropertiesDict, B_layerPropertiesDict
 from GerberLayerColours import alphaBefore, alphaAfter
 from GerberLayerColours import gerberSet, returnLayerProperties
 
-
-################################################################################
-# First stab at trying to get a visual diff for the gerbers
-
 ### Some global variables
 
+pathToGerbv = "C:/Users/Joel/Desktop/Gerb/App/gerbv64/bin/gerbv.exe"
 projectFileName = "Gerbv_Project.gvp"
 
 ###
@@ -44,6 +62,7 @@ def gatherLayerInformation(set):
     else:
         print("\n**** No project file found! ****\n")
         print("\n**** Tweak this so we do a manual search of files! ****\n")
+        input("\nPress Enter to close this window...")
         exit()
 
     # Load the present files / layers from the project file
@@ -125,16 +144,12 @@ stackUpBefore = gatherLayerInformation(gerberSet.BEFORE)
 # Layer properties will contain each layer's properties
 # This is the text that will go into the file
 if (len(stackUpAfter) != len(stackUpBefore)):
-    print ("Different number of gerbers in Before and After?")
+    print("Different number of gerbers in Before and After?")
+    input("Fix this so it's not an issue!")
+    input("\nPress Enter to close this window...")
     exit()
 
 layerProperties = [None] * len(stackUpAfter)
-# for i, (filename, layerVisibility, layerColour) in enumerate(stackUpAfter):
-#     layerProperties[i] = """(define-layer! %d (cons 'filename \"%s\")
-#     (cons 'visible #%s)
-#     (cons 'color #(%s))
-#     (cons 'alpha #(65535))
-# )\n""" % (i, filename, layerVisibility, layerColour)
 
 # These are the strings we have to modify to build the project file
 layerNoAndFilenameString = """(define-layer! %d (cons 'filename \"%s\")"""
@@ -164,7 +179,6 @@ f.write("""(define-layer! -1 (cons 'filename "%s")
 f.close()
 
 ### Search for gerbv and open it if it finds it
-pathToGerbv = "C:/Users/Joel/Desktop/Gerb/App/gerbv64/bin/gerbv.exe"
 exists = os.path.isfile(pathToGerbv)
 if (exists):
     print(projectFileName)
@@ -175,7 +189,7 @@ else:
     print("Doh!")
 
 if path.isdir("__pycache__"):
-    for file in os.listdir():
+    for file in os.listdir("__pycache__"):
         os.remove("__pycache__/" + file)
     os.rmdir("__pycache__")
 
