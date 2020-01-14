@@ -22,6 +22,8 @@ It's callable from the command line, so you don't need KiCad open to run it.
 
 A script that generates the Positions file for your project. It outputs a nicely (well, for my taste) formatted table in an Excel file with all the positions, ready to send to your manufacturer.
 
+![Positions](Support/img/Positions.png)
+
 ## GerbV Project Generator
 
 I use GerbV as my Gerber Viewer. I hate that every time I dump a bunch of gerbers, the layers' order and colours are random, and I have to spend a minute sorting everything. I made a script that takes a folder with gerbers and generates a GerbV project with the Gerbers ordered and coloured based on their contents.

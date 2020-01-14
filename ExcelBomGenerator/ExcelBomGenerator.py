@@ -25,6 +25,7 @@ import subprocess
 import sys
 from copy import copy, deepcopy
 
+from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl import load_workbook
@@ -302,18 +303,23 @@ ws1.add_table(tab)
 
 ### Insert the Metadata ########################################################
 # cell e8: date
-# cell e9: Title
-# cell e10: Revision
-# cell e11: Company
-# cell e12: Total Parts
-# cell e13: unique parts
+if date == "":
+    # If we didn't get the date from KiBom, use current time
+    now = datetime.now() # current date and time
+    date = now.strftime("%Y/%m/%d, %H:%M")
 ws1.cell(column=5, row=8, value=date)
+# cell e9: Title
 if variant == "default":
     ws1.cell(column=5, row=9, value=projectName)
 else:
     ws1.cell(column=5, row=9, value=projectName+ " - " + variant)
+# cell e10: Revision
 ws1.cell(column=5, row=10, value=version)
-ws1["E11"] = "Felcana"
+# cell e11: Company
+# Uncomment if you want to add a company name
+# ws1["E11"] = "Compuglobalhypermeganet"
+# cell e12: Total Parts
+# cell e13: unique parts
 # E12 and 13 have formulas that need the title of the column C
 columnTitle = ws1["C15"].value
 ws1["E12"] = "=SUM(BoM[[#All],[" + columnTitle + "]])"
