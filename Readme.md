@@ -35,3 +35,7 @@ I use GerbV as my Gerber Viewer. I hate that every time I dump a bunch of gerber
 HW design software is not nice with Git. Even though files are text, good luck trying to find out what you changed between revisions. This script takes two sets of gerbers and compares them visually, so you can spot what are the differences layer by layer.
 
 ![CalaveraDiff](support/img/Visual_Diff.png)
+
+## Docker Images
+
+A bunch of docker images I've been toying around, and don't know where to put.
